@@ -2,6 +2,11 @@ module github.com/networkservicemesh/sdk-k8s
 
 go 1.18
 
+replace (
+	github.com/networkservicemesh/api => ../api
+	github.com/networkservicemesh/sdk => ../sdk
+)
+
 require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/golang/protobuf v1.5.2
