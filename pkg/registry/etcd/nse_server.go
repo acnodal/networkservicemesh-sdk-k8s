@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +47,17 @@ type etcdNSERegistryServer struct {
 	ns           string
 }
 
-func (n *etcdNSERegistryServer) Register(ctx context.Context, request *registry.NetworkServiceEndpoint) (*registry.NetworkServiceEndpoint, error) {
+func (n *etcdNSERegistryServer) Register(ctx context.Context, request *registry.NetworkServiceEndpoint) (regd *registry.NetworkServiceEndpoint, err error) {
+	logger := log.FromContext(n.chainContext)
+	logger.WithField("etcdNSERegistryServer", "Register-entry").Debug(debug.JSONify(request))
+	defer func() {
+		if err != nil {
+			logger.WithField("etcdNSERegistryServer", "Register-exit").Debug(err)
+		} else {
+			logger.WithField("etcdNSERegistryServer", "Register-exit").Debug(debug.JSONify(*regd))
+		}
+	}()
+
 	resp, err := next.NetworkServiceEndpointRegistryServer(ctx).Register(ctx, request)
 	if err != nil {
 		return nil, err
@@ -96,6 +107,9 @@ func (n *etcdNSERegistryServer) Register(ctx context.Context, request *registry.
 }
 
 func (n *etcdNSERegistryServer) Find(query *registry.NetworkServiceEndpointQuery, s registry.NetworkServiceEndpointRegistry_FindServer) error {
+	logger := log.FromContext(n.chainContext).WithField("etcdNSERegistryServer", "Find")
+	logger.Debug(query)
+
 	list, err := n.client.NetworkservicemeshV1().NetworkServiceEndpoints("").List(s.Context(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -120,7 +134,15 @@ func (n *etcdNSERegistryServer) Find(query *registry.NetworkServiceEndpointQuery
 	return next.NetworkServiceEndpointRegistryServer(s.Context()).Find(query, s)
 }
 
-func (n *etcdNSERegistryServer) Unregister(ctx context.Context, request *registry.NetworkServiceEndpoint) (*empty.Empty, error) {
+func (n *etcdNSERegistryServer) Unregister(ctx context.Context, request *registry.NetworkServiceEndpoint) (mt *empty.Empty, err error) {
+	logger := log.FromContext(n.chainContext)
+	logger.WithField("etcdNSERegistryServer", "Unregister-entry").Debug(debug.JSONify(request))
+	defer func() {
+		if err != nil {
+			logger.WithField("etcdNSERegistryServer", "Unregister-exit").Debug(err)
+		}
+	}()
+
 	resp, err := next.NetworkServiceEndpointRegistryServer(ctx).Unregister(ctx, request)
 	if err != nil {
 		return nil, err
