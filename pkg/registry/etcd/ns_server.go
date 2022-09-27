@@ -176,7 +176,13 @@ func (n *etcdNSRegistryServer) Find(query *registry.NetworkServiceQuery, s regis
 		}
 	}
 	if query.Watch {
-		if err := n.watch(query, s); err != nil && !errors.Is(err, io.EOF) {
+		if err := n.watch(query, s); err != nil {
+			// If we have timed out then return nil to close the stream
+			// cleanly
+			if errors.Is(err, io.EOF) || err.Error() == "context canceled" {
+				logger.Debug("watch timed out, closing stream")
+				return nil
+			}
 			return err
 		}
 	}
